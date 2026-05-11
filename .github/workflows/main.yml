@@ -1,4 +1,4 @@
-name: Build Sarmad Keyboard
+name: Build Sarmad AI Tool
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -6,20 +6,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract Project
+      - name: Create Android Structure
         run: |
-          unzip Sarmad*.zip
-          FILEPATH=$(find . -name "gradlew" -print -quit)
-          DIRPATH=$(dirname "$FILEPATH")
-          shopt -s dotglob
-          mv "$DIRPATH"/* . || true
+          # إنشاء المجلدات المطلوبة
+          mkdir -p app/src/main/java/com/sarmad/aitool
+          mkdir -p app/src/main/res/layout
+          
+          # نقل ملفاتك التي رفعتها إلى مكانها الصحيح للبرمجة
+          cp MainActivity.java app/src/main/java/com/sarmad/aitool/
+          cp activity_main.xml app/src/main/res/layout/
+          
+          # إنشاء ملف الإعدادات الأساسي
+          echo 'include ":app"' > settings.gradle
+          
+          # إنشاء ملف بناء التطبيق
+          echo 'apply plugin: "com.android.application"
+          android {
+              compileSdkVersion 33
+              defaultConfig {
+                  applicationId "com.sarmad.aitool"
+                  minSdkVersion 21
+                  targetSdkVersion 33
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          repositories { google(); mavenCentral() }' > app/build.gradle
 
-      - name: Force Fix Repositories
-        run: |
-          # إعادة كتابة ملف settings.gradle لفرض استخدام مستودعات جوجل
-          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
-          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS); repositories { google(); mavenCentral() } }" >> settings.gradle
-          echo "rootProject.name = 'SarmadKeyboard'" >> settings.gradle
+          # إنشاء ملف المانيفست (هوية التطبيق)
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.sarmad.aitool"><application android:label="Sarmad AI" android:theme="@android:style/Theme.Material.Light.NoActionBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
 
       - name: set up JDK 17
         uses: actions/setup-java@v4
@@ -29,12 +44,12 @@ jobs:
 
       - name: Build APK
         run: |
-          if [ ! -f "gradlew" ]; then gradle wrapper; fi
+          gradle wrapper
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sarmad-Keyboard-Final
-          path: "**/build/outputs/apk/debug/*.apk"
+          name: Sarmad-AI-Final
+          path: "app/build/outputs/apk/debug/*.apk"
