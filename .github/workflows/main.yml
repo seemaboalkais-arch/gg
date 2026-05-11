@@ -1,4 +1,4 @@
-name: Ultimate Build Fix
+name: Build Sarmad Keyboard
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -6,9 +6,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Unzip and Fix Structure
+      - name: Extract Project
         run: |
-          unzip *.zip
+          # فك ضغط الملف الجديد
+          unzip Sarmad*.zip
+          # البحث عن ملف gradlew في المجلدات الفرعية ونقل المحتويات للمسار الرئيسي
           FILEPATH=$(find . -name "gradlew" -print -quit)
           DIRPATH=$(dirname "$FILEPATH")
           shopt -s dotglob
@@ -20,15 +22,14 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build with Gradle (Ignore Errors)
+      - name: Build APK
         run: |
-          gradle wrapper
+          if [ ! -f "gradlew" ]; then gradle wrapper; fi
           chmod +x gradlew
-          # أضفنا هذا الأمر لتجاهل بعض أخطاء الكود البسيطة أثناء البناء
-          ./gradlew assembleDebug --stacktrace || ./gradlew assembleDebug -Pandroid.verifyLibraryRes=false
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SmartKeyboard-Final
+          name: Sarmad-Keyboard-App
           path: "**/build/outputs/apk/debug/*.apk"
