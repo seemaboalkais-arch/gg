@@ -1,4 +1,4 @@
-name: Build Sarmad
+name: Build Sarmad AI Tool Final
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -6,13 +6,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Project
+      - name: Create Clean Structure
         run: |
+          # إنشاء المجلدات المطلوبة بناءً على الحزمة (Package)
           mkdir -p app/src/main/java/com/sarmad/aitool
           mkdir -p app/src/main/res/layout
-          cp MainActivity.java app/src/main/java/com/sarmad/aitool/
-          cp activity_main.xml app/src/main/res/layout/
+          
+          # نقل الملفات التي رفعتها إلى مكانها الصحيح
+          cp MainActivity.java app/src/main/java/com/sarmad/aitool/ || true
+          cp activity_main.xml app/src/main/res/layout/ || true
+
+      - name: Generate Build Files
+        run: |
+          # 1. إنشاء ملف settings.gradle
           echo 'include ":app"' > settings.gradle
+
+          # 2. إنشاء ملف build.gradle الرئيسي مع تعريف المستودعات
+          echo "buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:7.4.2' } }" > build.gradle
+          echo "allprojects { repositories { google(); mavenCentral() } }" >> build.gradle
+
+          # 3. إنشاء ملف build.gradle للتطبيق مع حل مشكلة الـ Namespace
           echo 'apply plugin: "com.android.application"
           android {
               compileSdk 33
@@ -24,9 +37,10 @@ jobs:
                   versionCode 1
                   versionName "1.0"
               }
-          }
-          repositories { google(); mavenCentral() }' > app/build.gradle
-          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Sarmad AI"><activity android:name="com.sarmad.aitool.MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+          } ' > app/build.gradle
+
+          # 4. إنشاء ملف AndroidManifest.xml
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Sarmad AI" android:theme="@android:style/Theme.Material.Light.NoActionBar"><activity android:name="com.sarmad.aitool.MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
 
       - name: set up JDK 17
         uses: actions/setup-java@v4
@@ -34,14 +48,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build APK
+      - name: Build with Fixed Gradle
         run: |
-          gradle wrapper
+          # إجبار النظام على استخدام إصدار مستقر (7.5) لتجنب أخطاء Gradle 9
+          gradle wrapper --gradle-version 7.5
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sarmad-APK
+          name: Sarmad-AI-App
           path: app/build/outputs/apk/debug/*.apk
