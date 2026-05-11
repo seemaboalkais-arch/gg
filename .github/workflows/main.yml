@@ -8,13 +8,17 @@ jobs:
 
       - name: Extract Project
         run: |
-          # فك ضغط الملف الجديد
           unzip Sarmad*.zip
-          # البحث عن ملف gradlew في المجلدات الفرعية ونقل المحتويات للمسار الرئيسي
           FILEPATH=$(find . -name "gradlew" -print -quit)
           DIRPATH=$(dirname "$FILEPATH")
           shopt -s dotglob
           mv "$DIRPATH"/* . || true
+
+      - name: Fix Repository Error
+        run: |
+          # هذا الأمر سيحذف السطر المسبب للخطأ في ملف build.gradle تلقائياً
+          sed -i '/google()/d' build.gradle || true
+          sed -i '/mavenCentral()/d' build.gradle || true
 
       - name: set up JDK 17
         uses: actions/setup-java@v4
@@ -31,5 +35,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sarmad-Keyboard-App
+          name: Sarmad-Keyboard-Final
           path: "**/build/outputs/apk/debug/*.apk"
