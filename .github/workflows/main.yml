@@ -1,4 +1,4 @@
-name: Build Sarmad App
+name: Build Sarmad Fix Final
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -12,53 +12,49 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Force Clean Build
+      - name: Create Structure and Modern Configuration
         run: |
-          # 1. إنشاء الهيكل الصحيح للمجلدات
+          # 1. إنشاء مجلدات الكود
           mkdir -p app/src/main/java/com/sarmad/aitool
           mkdir -p app/src/main/res/layout
           
-          # 2. نقل ملفاتك (تأكد أن أسماء الملفات في GitHub مطابقة لهذه تماماً)
+          # 2. نقل ملفاتك (تأكد من وجودها في GitHub بنفس الأسماء)
           cp MainActivity.java app/src/main/java/com/sarmad/aitool/ || true
           cp activity_main.xml app/src/main/res/layout/ || true
           
-          # 3. إنشاء ملفات الإعدادات (هنا يكمن الحل للخطأ في صورة 1000040987)
-          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
-          rootProject.name = 'SarmadTool'
-          include ':app'" > settings.gradle
+          # 3. استخدام تنسيق .kts الحديث الذي يطلبه Gradle 9
+          echo 'rootProject.name = "SarmadTool"
+          include(":app")' > settings.gradle.kts
 
-          # 4. بناء ملف الـ Build الرئيسي
-          echo "buildscript { 
-            repositories { google(); mavenCentral() }
-            dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
-          }" > build.gradle
-
-          # 5. بناء ملف الـ Build الخاص بالتطبيق (حل مشكلة الـ Plugin)
-          echo "apply plugin: 'com.android.application'
+          # 4. ملف بناء التطبيق بتنسيق Kotlin لضمان التوافق
+          echo 'plugins {
+              id("com.android.application") version "8.1.0"
+              id("org.jetbrains.kotlin.android") version "1.8.10" apply false
+          }
           android {
-              compileSdk 33
-              namespace 'com.sarmad.aitool'
+              compileSdk = 33
+              namespace = "com.sarmad.aitool"
               defaultConfig {
-                  applicationId 'com.sarmad.aitool'
-                  minSdk 21
-                  targetSdk 33
-                  versionCode 1
-                  versionName '1.0'
+                  applicationId = "com.sarmad.aitool"
+                  minSdk = 21
+                  targetSdk = 33
+                  versionCode = 1
+                  versionName = "1.0"
               }
-          }" > app/build.gradle
+          }
+          repositories { google(); mavenCentral() }' > app/build.gradle.kts
 
-          # 6. إنشاء المانيفست
+          # 5. إنشاء المانيفست
           echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Sarmad AI"><activity android:name="com.sarmad.aitool.MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
 
-      - name: Build APK with Wrapper Fix
+      - name: Build with Modern Gradle
         run: |
-          # إجبار النظام على تنزيل النسخة المتوافقة 7.5 والعمل بها حصراً
-          gradle wrapper --gradle-version 7.5
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          # السماح لـ Gradle 9 ببناء المشروع بتنسيقه الخاص
+          chmod +x gradlew || true
+          gradle assembleDebug --stacktrace
 
-      - name: Upload Finished APK
+      - name: Upload Final APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sarmad-AI-Tool
-          path: app/build/outputs/apk/debug/*.apk
+          name: Sarmad-AI-App
+          path: "**/build/outputs/apk/debug/*.apk"
