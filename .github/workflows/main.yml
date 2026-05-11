@@ -1,4 +1,4 @@
-name: Final Build
+name: Build Sarmad App
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -6,32 +6,59 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Force Clean Build
         run: |
-          # هذه الخطوات هي التي تبني التطبيق بدلاً منك
+          # 1. إنشاء الهيكل الصحيح للمجلدات
           mkdir -p app/src/main/java/com/sarmad/aitool
           mkdir -p app/src/main/res/layout
-          cp MainActivity.java app/src/main/java/com/sarmad/aitool/
-          cp activity_main.xml app/src/main/res/layout/
-          echo 'include ":app"' > settings.gradle
-          echo "buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:7.4.2' } }" > build.gradle
-          echo "allprojects { repositories { google(); mavenCentral() } }" >> build.gradle
-          echo 'apply plugin: "com.android.application"
+          
+          # 2. نقل ملفاتك (تأكد أن أسماء الملفات في GitHub مطابقة لهذه تماماً)
+          cp MainActivity.java app/src/main/java/com/sarmad/aitool/ || true
+          cp activity_main.xml app/src/main/res/layout/ || true
+          
+          # 3. إنشاء ملفات الإعدادات (هنا يكمن الحل للخطأ في صورة 1000040987)
+          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          rootProject.name = 'SarmadTool'
+          include ':app'" > settings.gradle
+
+          # 4. بناء ملف الـ Build الرئيسي
+          echo "buildscript { 
+            repositories { google(); mavenCentral() }
+            dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
+          }" > build.gradle
+
+          # 5. بناء ملف الـ Build الخاص بالتطبيق (حل مشكلة الـ Plugin)
+          echo "apply plugin: 'com.android.application'
           android {
               compileSdk 33
-              namespace "com.sarmad.aitool"
-              defaultConfig { applicationId "com.sarmad.aitool"; minSdk 21; targetSdk 33 }
-          }' > app/build.gradle
-          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.sarmad.aitool"><application android:label="Sarmad AI"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+              namespace 'com.sarmad.aitool'
+              defaultConfig {
+                  applicationId 'com.sarmad.aitool'
+                  minSdk 21
+                  targetSdk 33
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }" > app/build.gradle
 
-      - name: Build
+          # 6. إنشاء المانيفست
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Sarmad AI"><activity android:name="com.sarmad.aitool.MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+
+      - name: Build APK with Wrapper Fix
         run: |
+          # إجبار النظام على تنزيل النسخة المتوافقة 7.5 والعمل بها حصراً
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
-      - name: Get APK
+      - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sarmad-App
+          name: Sarmad-AI-Tool
           path: app/build/outputs/apk/debug/*.apk
